@@ -1,0 +1,65 @@
+# put your *.o targets here, make should handle the rest!
+SRCS = main.c syscalls.c usart1.c
+
+# all the files will be generated with this name (main.elf, main.bin, main.hex, etc)
+PROJ_NAME=main
+
+
+# that's it, no need to change anything below this line!
+
+###################################################
+
+CC=arm-none-eabi-gcc
+OBJCOPY=arm-none-eabi-objcopy
+OBJDUMP=arm-none-eabi-objdump
+SIZE=arm-none-eabi-size
+GDB=arm-none-eabi-gdb
+
+CFLAGS  = -Wall -g -std=gnu99 -O0
+CFLAGS += -mlittle-endian -mcpu=cortex-m4  -march=armv7e-m -mthumb
+CFLAGS += -mfpu=fpv4-sp-d16 -mfloat-abi=hard
+CFLAGS += -ffunction-sections -fdata-sections
+CFLAGS += -Wl,-Map=$(PROJ_NAME).map
+CFLAGS += -Wl,-nostartfiles  
+
+###################################################
+
+vpath %.c src
+vpath %.a $(STD_PERIPH_LIB)
+
+ROOT=$(shell pwd)
+
+CFLAGS += -I CMSIS
+CFLAGS += -I .
+
+SRCS += startup_stm32f30x.s # add startup file to build
+
+
+OBJS = $(SRCS:.c=.o)
+
+###################################################
+
+.PHONY:  proj
+
+all:   proj
+
+proj: 	$(PROJ_NAME).elf
+
+$(PROJ_NAME).elf: $(OBJS)
+	$(CC) $(CFLAGS) $^ -o $@ -T./stm32f302k8.ld
+	$(OBJCOPY) -O ihex $(PROJ_NAME).elf $(PROJ_NAME).hex
+	$(OBJCOPY) -O binary $(PROJ_NAME).elf $(PROJ_NAME).bin
+	$(OBJDUMP) -St $(PROJ_NAME).elf >$(PROJ_NAME).lst
+	$(SIZE) $(PROJ_NAME).elf
+
+
+
+clean:
+	find ./ -name '*~' | xargs rm -f	
+	rm -f *.o hs_main.c *.symlist
+	rm -f $(PROJ_NAME).elf
+	rm -f $(PROJ_NAME).hex
+	rm -f $(PROJ_NAME).bin
+	rm -f $(PROJ_NAME).map
+	rm -f $(PROJ_NAME).lst
+
